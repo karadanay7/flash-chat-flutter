@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "117135591486",
+    "project_id": "sadi-c04c5",
+    "storage_bucket": "sadi-c04c5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:117135591486:android:7ad5dacdad199440d4696f",
+        "android_client_info": {
+          "package_name": "com.example.sadi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChMbjtLeMf97QEK-0vPI68K4Jz1VEwV3E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
