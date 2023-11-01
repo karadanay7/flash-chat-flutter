@@ -35,6 +35,8 @@ res = 'success';
         res = "Wrong email or password";
       } else if  ( e.code == 'user-not-found') {
         res = "user not found";
+      } else {
+        res = e.code;
       }
 
     }

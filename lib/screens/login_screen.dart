@@ -1,16 +1,16 @@
-import 'package:sadi/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sadi/components/rounded_button.dart';
-import 'package:sadi/screens/chat_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:sadi/constants.dart';
 import 'package:sadi/screens/welcome_screen.dart';
 import 'package:sadi/service/auth_service.dart';
+import 'package:sadi/components/rounded_button.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:sadi/screens/chat_screen.dart';
 
-// ignore: use_key_in_widget_constructors
 class LoginScreen extends StatefulWidget {
   static const String id = 'login_screen';
+
   @override
-  // ignore: library_private_types_in_public_api
   _LoginScreenState createState() => _LoginScreenState();
 }
 
@@ -19,109 +19,141 @@ class _LoginScreenState extends State<LoginScreen> {
   final formKey = GlobalKey<FormState>();
   final firebaseAuth = FirebaseAuth.instance;
   final authService = AuthService();
+  bool showSpinner = false;
+  String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue.shade50,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: Colors.blueAccent,
+          ),
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, WelcomeScreen.id);
+          },
+        ),
+      ),
       backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Hero(
-                tag: 'logo',
-                child: SizedBox(
-                  height: 200.0,
-                  child: Image.asset('images/logo.png'),
+      body: ModalProgressHUD(
+        inAsyncCall: showSpinner,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Flexible(
+                  child: Hero(
+                    tag: 'logo',
+                    child: SizedBox(
+                      height: 160.0,
+                      child: Image.asset('images/logo.png'),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(
-                height: 48.0,
-              ),
-              TextFormField(
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter your email correctly';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  email = value!;
-                  //Do something with the user input.
-                },
-                decoration:
-                    kTextFieldDecoration.copyWith(hintText: 'Enter your email'),
-              ),
-              const SizedBox(
-                height: 8.0,
-              ),
-              TextFormField(
-                obscureText: true,
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Please enter your password correctly';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  password = value!;
-                  //Do something with the user input.
-                },
-                decoration: kTextFieldDecoration.copyWith(
-                    hintText: 'Enter your password'),
-              ),
-              const SizedBox(
-                height: 24.0,
-              ),
-              RoundedButton(
+                const SizedBox(
+                  height: 48.0,
+                ),
+                TextFormField(
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Please enter your email correctly';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    email = value!;
+                  },
+                  decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your email'),
+                ),
+                const SizedBox(
+                  height: 8.0,
+                ),
+                TextFormField(
+                  obscureText: true,
+                  validator: (value) {
+                    if (value!.isEmpty) {
+                      return 'Please enter your password correctly';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    password = value!;
+                  },
+                  decoration: kTextFieldDecoration.copyWith(hintText: 'Enter your password'),
+                ),
+                const SizedBox(
+                  height: 24.0,
+                ),
+                if (errorMessage != null)
+                  Center(
+                    child: Text(
+                      errorMessage!,
+                      style: TextStyle(
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                RoundedButton(
                   title: 'Login',
                   color: Colors.lightBlueAccent,
                   onPressed: () async {
+                    setState(() {
+                      errorMessage = null; // Clear the previous error message
+                    });
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
+                      if (password.isNotEmpty) {
+                        // Only start the spinner if the password is not empty
+                        setState(() {
+                          showSpinner = true;
+                        });
+                        try {
+                          var userResult = await firebaseAuth.signInWithEmailAndPassword(
+                            email: email,
+                            password: password,
+                          );
 
-                      final result =
-                          await authService.signInWithEmail(email, password);
-                      if (result == 'success') {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => ChatScreen()),
-                          (route) => false,
-                        );
-                      } else {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: Text("Error"),
-                              content: Text(result!),
-                              actions: [
-                                TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text('Go Back'))
-                              ], // Display the error message
+                          if (userResult.user != null) {
+                            // Login successful, navigate to the chat screen
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (context) => ChatScreen()),
+                                  (route) => false,
                             );
-                          },
-                        );
+                          } else {
+                            setState(() {
+                              errorMessage = 'An error occurred during login.';
+                              showSpinner = false;
+                            });
+                          }
+                        } on FirebaseAuthException catch (e) {
+                          setState(() {
+                            showSpinner = false;
+                            errorMessage = 'Login failed: ${e.message}';
+                          });
+                        } catch (e) {
+                          setState(() {
+                            showSpinner = false;
+                            errorMessage = 'An error occurred: $e';
+                          });
+                        }
+                      } else {
+                        setState(() {
+                          errorMessage = 'Please enter your password.';
+                        });
                       }
                     }
-                  }),
-              RoundedButton(
-                title: 'Anonymous',
-                color: Colors.lightBlueAccent,
-                onPressed: () {
-                  final result = authService.signInAnonymous();
-                  if (result != null) {
-                    Navigator.pushReplacementNamed(context, WelcomeScreen.id);
-                  } else {
-                    print('hata ile karsilasildi');
-                  }
-                },
-              ),
-            ],
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
